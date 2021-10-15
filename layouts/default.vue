@@ -108,7 +108,7 @@ export default {
         },
         {
           icon: 'mdi-format-list-checks',
-          title: 'ToDo List',
+          title: 'Todo List',
           to: '/todo',
         }
       ],
