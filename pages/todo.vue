@@ -5,6 +5,7 @@
 		<v-card class="py-4 d-flex justify-center" width="80%">
 			<v-spacer />
 			<v-text-field
+				v-model="taskName"
 				:rules="rules"
 				counter="true"
 				outlined
@@ -13,16 +14,41 @@
 				color="primary"
 				x-large
 				style="margin-left: 10px;"
+				@click="newTask"
 			>追加</v-btn>
 			<v-spacer />
 		</v-card>
 
 		<!-- フィルターエリア -->
 		<v-card class="py-4 d-flex justify-center" width="80%">
-			<v-btn large style="margin: 0 20px;" width="15%" color="success">全て</v-btn>
-			<v-btn large style="margin: 0 20px;" width="15%" color="primary">作業前</v-btn>
-			<v-btn large style="margin: 0 20px;" width="15%" color="secondary">作業中</v-btn>
-			<v-btn large style="margin: 0 20px;" width="15%" color="error">完了</v-btn>
+			<v-btn
+				large
+				style="margin: 0 20px;"
+				width="15%"
+				color="success"
+				@click="filterTasksAll"
+			>全て</v-btn>
+			<v-btn
+				large
+				style="margin: 0 20px;"
+				width="15%"
+				color="primary"
+				@click="filterTasks('作業前')"
+			>作業前</v-btn>
+			<v-btn
+				large
+				style="margin: 0 20px;"
+				width="15%"
+				color="secondary"
+				@click="filterTasks('作業中')"
+			>作業中</v-btn>
+			<v-btn
+				large
+				style="margin: 0 20px;"
+				width="15%"
+				color="error"
+				@click="filterTasks('完了')"
+			>完了</v-btn>
 		</v-card>
 
 		<!-- 検索エリア -->
@@ -44,10 +70,21 @@
 		<v-card class="py-4 d-flex justify-center" width="80%">
 			<v-data-table
 				:headers="headers"
-				:items="tasks"
+				:items="filtered"
 				:search="search"
 				style="width: 80%;"
+				:items-per-page=5
 			>
+
+				<!-- 状態表示の子コンポーネント -->
+				<template v-slot:item.taskState="{ item }">
+					<v-btn
+						:color="getColor(item.taskState)"
+						@click="taskStateChange(item)"
+					>{{item.taskState}}</v-btn>
+				</template>
+
+				<!-- 削除ボタンの子コンポーネント -->
 				<template v-slot:item.delete="{ item }">
 					<v-btn
 						color="error"
@@ -57,12 +94,15 @@
 
 			</v-data-table>
 		</v-card>
+
 	</v-row>
 </template>
 
 <script>
 	export default {
 		data: () =>({
+			// タスク名
+			taskName: '',
 			// バリデーション
 			rules: [
 				value => (value || '').length <= 20 || 'Max 20 characters',
@@ -73,7 +113,7 @@
 					text: 'タスク',
 					align: 'center',
 					sortable: true,
-					value: 'name',
+					value: 'taskName',
 				},
 				{
 					text: '登録日時',
@@ -90,7 +130,7 @@
 				{
 					text: '状態',
 					align: 'center',
-					value: 'state',
+					value: 'taskState',
 				},
 				{
 					text: '削除',
@@ -98,22 +138,45 @@
 					value: 'delete',
 				},
 			],
-			tasks: [
-				{
-					name: '掃除',
-					registDate: '2021-10-14 08:30:00',
-					updateDate: '2021-10-14 08:45:00',
-					state: '完了',
-					delete: '',
-				}
-			],
 			// 検索欄
 			search: '',
+			// tasks: [],
 		}),
 		methods: {
-			deleteTask(item) {
-				this.tasks.splice(this);
+			newTask() {
+				// タスクの新規登録
+				if(this.taskName) {
+					this.$store.commit('localStorage/insertState',{taskName: this.taskName});
+					this.$store.commit('localStorage/filterTasksAll');
+					this.taskName = '';
+				}
+			},
+			// タスクの状態変更
+			taskStateChange(task) {
+				this.$store.commit('localStorage/editState', task);
+			},
+			// タスクの削除
+			deleteTask(task) {
+				this.$store.commit('localStorage/deleteTask',task);
+			},
+			// 状態の色変更
+      getColor(taskstate) {
+        if (taskstate == '作業前') return 'primary' ;
+        else if (taskstate == '作業中') return 'secondary' ;
+        else return 'error' ;
+      },
+			// 表示タスクの絞り込み(関数を分けるのではなく、引数で処理したい)
+			filterTasksAll() {
+				this.$store.commit('localStorage/filterTasksAll');
+			},
+			filterTasks(state) {
+				this.$store.commit('localStorage/filterTasks', state);
 			},
 		},
+		computed: {
+			filtered() {
+				return this.$store.state.localStorage.filtered;
+			}
+		}
 	}
 </script>
